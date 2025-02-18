@@ -1,6 +1,6 @@
 {
   "framework": "nextjs",
-  "buildCommand": "npm install --save-dev typescript @types/react @types/node && next build",
+  "buildCommand": "npm install && npm run build",
   "installCommand": "npm install",
   "outputDirectory": ".next",
   "env": {
