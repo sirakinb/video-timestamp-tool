@@ -2,5 +2,8 @@
   "buildCommand": "npm ci && npm run build",
   "installCommand": "npm ci",
   "framework": "nextjs",
-  "outputDirectory": ".next"
+  "outputDirectory": ".next",
+  "env": {
+    "NEXT_PUBLIC_API_URL": "https://funtimesvideo0217.onrender.com"
+  }
 } 
