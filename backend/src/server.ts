@@ -18,10 +18,12 @@ app.use(cors({
     'http://localhost:3001',
     'http://localhost:3002',
     'https://funtimesvideo0217.vercel.app',
+    'https://fun-times-video-transcription.vercel.app',
+    'https://fun-times-video-transcription-git-main-sirakinbs-projects.vercel.app',
     /\.vercel\.app$/ // Allow all Vercel preview deployments
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Content-Length', 'Host'],
   credentials: true
 }));
 
