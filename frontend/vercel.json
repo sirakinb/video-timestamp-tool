@@ -4,6 +4,6 @@
   "framework": "nextjs",
   "outputDirectory": ".next",
   "env": {
-    "NEXT_PUBLIC_API_URL": "https://funtimesvideo0217.onrender.com"
+    "NEXT_PUBLIC_API_URL": "https://funtimesvideo-backend.onrender.com"
   }
 } 
