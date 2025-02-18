@@ -34,3 +34,20 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+# Video Transcription Frontend
+
+## Deployment on Vercel
+
+1. Push your code to GitHub
+2. Go to [Vercel](https://vercel.com)
+3. Create a new project and import your repository
+4. In the Vercel project settings, add the following environment variables:
+   - `NEXT_PUBLIC_API_URL`: Your backend API URL from Render (e.g., https://your-app.onrender.com)
+
+## Development
+
+```bash
+npm install
+npm run dev
+```

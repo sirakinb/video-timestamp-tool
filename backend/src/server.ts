@@ -13,7 +13,12 @@ const port = process.env.PORT || 3001;
 
 // Configure CORS with specific options
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'],
+  origin: [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost:3002',
+    'https://funtimesvideo0217.vercel.app'  // Add your Vercel domain here
+  ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
