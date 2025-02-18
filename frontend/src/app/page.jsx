@@ -7,32 +7,17 @@ import { CloudArrowUpIcon } from '@heroicons/react/24/outline';
 // Add API base URL
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
-interface Speaker {
-  id: string;
-  name: string;
-}
-
-interface Utterance {
-  speaker: string;
-  text: string;
-  id: string;
-}
-
-interface TranscriptionData {
-  utterances: Utterance[];
-}
-
 export default function Home() {
-  const [file, setFile] = useState<File | null>(null);
+  const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
-  const [transcriptionId, setTranscriptionId] = useState<string | null>(null);
-  const [transcription, setTranscription] = useState<TranscriptionData | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [speakers, setSpeakers] = useState<Speaker[]>([]);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingText, setEditingText] = useState<string>('');
+  const [transcriptionId, setTranscriptionId] = useState(null);
+  const [transcription, setTranscription] = useState(null);
+  const [error, setError] = useState(null);
+  const [speakers, setSpeakers] = useState([]);
+  const [editingId, setEditingId] = useState(null);
+  const [editingText, setEditingText] = useState('');
 
-  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+  const handleDrop = useCallback((e) => {
     e.preventDefault();
     const droppedFile = e.dataTransfer.files[0];
     if (droppedFile && droppedFile.size <= 4 * 1024 * 1024 * 1024) {
@@ -42,7 +27,7 @@ export default function Home() {
     }
   }, []);
 
-  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = useCallback((e) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile && selectedFile.size <= 4 * 1024 * 1024 * 1024) {
       setFile(selectedFile);
@@ -51,7 +36,7 @@ export default function Home() {
     }
   }, []);
 
-  const handleSpeakerNameChange = (speakerId: string, newName: string) => {
+  const handleSpeakerNameChange = (speakerId, newName) => {
     setSpeakers(prevSpeakers => {
       const existingSpeaker = prevSpeakers.find(s => s.id === speakerId);
       if (existingSpeaker) {
@@ -63,12 +48,12 @@ export default function Home() {
     });
   };
 
-  const getSpeakerName = (speakerId: string) => {
+  const getSpeakerName = (speakerId) => {
     const speaker = speakers.find(s => s.id === speakerId);
     return speaker ? speaker.name : `Speaker ${speakerId}`;
   };
 
-  const handleEditClick = (utterance: Utterance) => {
+  const handleEditClick = (utterance) => {
     if (editingId === utterance.id) {
       // Save the changes
       handleTextEdit(utterance.id, editingText);
@@ -80,7 +65,7 @@ export default function Home() {
     }
   };
 
-  const handleTextEdit = (id: string, newText: string) => {
+  const handleTextEdit = (id, newText) => {
     if (!transcription) return;
     setTranscription({
       ...transcription,
@@ -90,7 +75,7 @@ export default function Home() {
     });
   };
 
-  const handleDeleteSegment = (id: string) => {
+  const handleDeleteSegment = (id) => {
     if (!transcription) return;
     if (confirm('Are you sure you want to delete this segment?')) {
       setTranscription({
@@ -167,7 +152,7 @@ export default function Home() {
         if (status.status === 'completed') {
           setTranscription({
             ...status,
-            utterances: status.utterances.map((u: Utterance, index: number) => ({
+            utterances: status.utterances.map((u, index) => ({
               ...u,
               id: `utterance-${index}`
             }))
@@ -252,7 +237,7 @@ export default function Home() {
                 </button>
               </div>
             </div>
-            {transcription.utterances?.map((utterance: Utterance) => (
+            {transcription.utterances?.map((utterance) => (
               <div key={utterance.id} className="mb-6 bg-slate-800/50 p-4 rounded-lg">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
@@ -296,4 +281,4 @@ export default function Home() {
       </div>
     </main>
   );
-}
+} 
