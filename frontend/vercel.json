@@ -1,9 +1,9 @@
 {
   "framework": "nextjs",
-  "buildCommand": "npm install && npm install typescript@5.3.3 @types/react@18.2.57 @types/node@20.11.19 @types/react-dom@18.2.19 --save-dev && npm run build",
+  "buildCommand": "npm install && next build",
   "installCommand": "npm install",
   "outputDirectory": ".next",
   "env": {
-    "NEXT_PUBLIC_API_URL": "https://funtimesvideo-backend.onrender.com"
+    "NEXT_PUBLIC_BACKEND_URL": "https://funtimesvideo-backend.onrender.com"
   }
 } 
