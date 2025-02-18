@@ -9,8 +9,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Video Transcription Tool",
-  description: "A modern web application for transcribing videos with speaker identification",
+  title: "FunTimes Video Transcription",
+  description: "A modern video transcription tool with speaker identification",
 };
 
 export default function RootLayout({
@@ -20,7 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={inter.variable}>
-      <body className="font-sans antialiased min-h-screen">
+      <body className="font-sans antialiased min-h-screen bg-[#0F172A]">
         {children}
       </body>
     </html>

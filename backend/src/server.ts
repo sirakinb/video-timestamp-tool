@@ -17,7 +17,8 @@ app.use(cors({
     'http://localhost:3000',
     'http://localhost:3001',
     'http://localhost:3002',
-    'https://funtimesvideo0217.vercel.app'  // Add your Vercel domain here
+    'https://funtimesvideo0217.vercel.app',
+    /\.vercel\.app$/ // Allow all Vercel preview deployments
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],

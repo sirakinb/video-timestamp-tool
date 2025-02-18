@@ -4,8 +4,9 @@
 
 :root {
   --foreground-rgb: 255, 255, 255;
-  --background-start-rgb: 0, 0, 0;
-  --background-end-rgb: 15, 23, 42;
+  --background-start-rgb: 15, 23, 42;
+  --background-end-rgb: 30, 41, 59;
+  --accent-color: 129, 140, 248;
 }
 
 body {
@@ -19,12 +20,12 @@ body {
 }
 
 .upload-area {
-  border: 2px dashed rgb(var(--foreground-rgb));
+  border: 2px dashed rgb(var(--accent-color));
   border-radius: 1rem;
   transition: all 0.2s ease-in-out;
 }
 
 .upload-area:hover {
-  border-color: #3b82f6;
-  background-color: rgba(59, 130, 246, 0.1);
+  border-color: rgb(var(--accent-color));
+  background-color: rgba(var(--accent-color), 0.1);
 }
