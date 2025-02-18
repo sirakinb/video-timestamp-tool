@@ -1,7 +1,7 @@
 {
-  "buildCommand": "npm install && npm run build",
-  "installCommand": "npm install",
   "framework": "nextjs",
+  "buildCommand": "npm install --save-dev typescript @types/react @types/node && next build",
+  "installCommand": "npm install",
   "outputDirectory": ".next",
   "env": {
     "NEXT_PUBLIC_API_URL": "https://funtimesvideo0217.onrender.com"
