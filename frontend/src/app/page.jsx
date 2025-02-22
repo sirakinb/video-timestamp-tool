@@ -157,57 +157,111 @@ export default function Home() {
       const uploadWithRetry = async (attempt = 0) => {
         try {
           setProcessingStatus('Uploading file...');
+          
+          // Check connection speed before upload
+          const testConnection = async () => {
+            const start = Date.now();
+            try {
+              await fetch(`${API_URL}/api/getUploadUrl`, { method: 'HEAD' });
+              const duration = Date.now() - start;
+              console.log(`Connection test latency: ${duration}ms`);
+              return duration < 1000; // Consider connection good if latency < 1s
+            } catch (e) {
+              console.warn('Connection test failed:', e);
+              return true; // Continue with upload even if test fails
+            }
+          };
+
+          await testConnection();
+
           const uploadResponse = await new Promise((resolve, reject) => {
             const xhr = new XMLHttpRequest();
             xhr.open('PUT', uploadUrl, true);
             xhr.setRequestHeader('Content-Type', file.type);
             
+            let lastProgress = 0;
+            let stallTimer = null;
+            
+            const resetStallTimer = () => {
+              if (stallTimer) clearTimeout(stallTimer);
+              stallTimer = setTimeout(() => {
+                console.warn('Upload appears to be stalled');
+                xhr.abort();
+                reject(new Error('Upload stalled'));
+              }, 30000); // 30 second stall timeout
+            };
+
             xhr.upload.onprogress = (event) => {
               if (event.lengthComputable) {
                 const percentCompleted = Math.round((event.loaded * 100) / event.total);
+                if (percentCompleted > lastProgress) {
+                  lastProgress = percentCompleted;
+                  resetStallTimer();
+                }
                 setUploadProgress(percentCompleted);
                 console.log(`Upload progress: ${percentCompleted}%`);
               }
             };
 
             xhr.onload = () => {
-              if (xhr.status === 200 || xhr.status === 204) { // S3 might return 204
+              if (stallTimer) clearTimeout(stallTimer);
+              if (xhr.status === 200 || xhr.status === 204) {
+                console.log('Upload completed successfully');
                 resolve({ status: xhr.status });
               } else {
-                console.error('Upload failed with response:', {
+                console.error('Upload failed:', {
                   status: xhr.status,
                   statusText: xhr.statusText,
-                  response: xhr.response
+                  response: xhr.responseText,
+                  headers: xhr.getAllResponseHeaders()
                 });
                 reject(new Error(`Upload failed with status: ${xhr.status}`));
               }
             };
 
-            xhr.onerror = () => {
-              console.error('Upload failed with error:', {
+            xhr.onerror = (e) => {
+              if (stallTimer) clearTimeout(stallTimer);
+              const errorDetails = {
+                type: e.type,
+                loaded: xhr.upload.loaded,
+                total: file.size,
+                readyState: xhr.readyState,
                 status: xhr.status,
                 statusText: xhr.statusText,
-                response: xhr.response
-              });
-              reject(new Error('Upload failed'));
+                responseHeaders: xhr.getAllResponseHeaders(),
+                uploadUrl: uploadUrl
+              };
+              console.error('Network error during upload:', errorDetails);
+              reject(new Error(`Network error during upload: ${JSON.stringify(errorDetails)}`));
             };
 
-            xhr.timeout = 3600000; // 1 hour timeout
             xhr.ontimeout = () => {
+              if (stallTimer) clearTimeout(stallTimer);
+              console.error('Upload timed out');
               reject(new Error('Upload timed out'));
             };
 
+            xhr.timeout = 3600000; // 1 hour timeout
+            resetStallTimer();
+            
+            console.log('Starting upload with URL:', uploadUrl);
+            console.log('File details:', {
+              name: file.name,
+              type: file.type,
+              size: file.size
+            });
+            
             xhr.send(file);
           });
 
-          console.log('Upload successful:', uploadResponse.status);
+          console.log('Upload successful:', uploadResponse);
           return uploadResponse;
         } catch (error) {
           console.error(`Upload attempt ${attempt + 1} failed:`, error);
           if (attempt < RETRY_ATTEMPTS - 1) {
-            setProcessingStatus(`Upload failed, retrying in ${RETRY_DELAY/1000} seconds...`);
-            console.log(`Retrying upload in ${RETRY_DELAY}ms...`);
-            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+            const delay = RETRY_DELAY * Math.pow(2, attempt); // Exponential backoff
+            setProcessingStatus(`Upload failed, retrying in ${delay/1000} seconds...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
             return uploadWithRetry(attempt + 1);
           }
           throw error;
@@ -262,7 +316,7 @@ export default function Home() {
         response: err.response?.data,
         status: err.response?.status
       });
-      setError(err?.response?.data?.error || err.message || 'Upload failed');
+      setError('Upload failed');
       setUploading(false);
       setProcessingStatus('');
       setUploadProgress(0);

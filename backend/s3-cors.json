@@ -1,7 +1,10 @@
 [
   {
     "AllowedHeaders": [
-      "*"
+      "content-type",
+      "content-length",
+      "host",
+      "x-amz-*"
     ],
     "AllowedMethods": [
       "PUT",
@@ -16,7 +19,8 @@
       "https://funtimesvideo0217.vercel.app"
     ],
     "ExposeHeaders": [
-      "ETag"
+      "ETag",
+      "x-amz-*"
     ]
   }
 ] 
