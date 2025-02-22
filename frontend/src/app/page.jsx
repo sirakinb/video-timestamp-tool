@@ -136,24 +136,38 @@ export default function Home() {
 
       console.log('Got pre-signed URL:', uploadUrl); // Debug log
 
-      // Upload to S3
-      const formData = new FormData();
-      formData.append('file', file);
+      // Upload to S3 using XMLHttpRequest
+      await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('PUT', uploadUrl);
+        xhr.setRequestHeader('Content-Type', file.type);
+        
+        xhr.onload = () => {
+          if (xhr.status === 200) {
+            console.log('File uploaded successfully');
+            resolve();
+          } else {
+            console.error('Upload failed:', xhr.status, xhr.statusText);
+            reject(new Error(`Upload failed: ${xhr.statusText}`));
+          }
+        };
+        
+        xhr.onerror = () => {
+          console.error('XHR error:', xhr.statusText);
+          reject(new Error('Upload failed'));
+        };
+        
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const percentComplete = (event.loaded / event.total) * 100;
+            console.log(`Upload progress: ${percentComplete.toFixed(2)}%`);
+          }
+        };
+        
+        xhr.send(file);
+      });
 
-      try {
-        await fetch(uploadUrl, {
-          method: 'PUT',
-          body: file,
-          headers: {
-            'Content-Type': file.type,
-          },
-        });
-      } catch (uploadError) {
-        console.error('S3 Upload error:', uploadError);
-        throw uploadError;
-      }
-
-      console.log('File uploaded successfully, starting transcription'); // Debug log
+      console.log('Starting transcription for key:', key); // Debug log
 
       // Start transcription
       const { data: transcriptionData } = await axios.post(`${API_URL}/api/transcribe`, { key });
