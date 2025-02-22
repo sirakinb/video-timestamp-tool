@@ -128,30 +128,40 @@ export default function Home() {
       setUploading(true);
       setError(null);
 
-      // First, create a FormData object
-      const formData = new FormData();
-      formData.append('file', file);
-
       // Get pre-signed URL
       const { data: { uploadUrl, key } } = await axios.post(`${API_URL}/api/getUploadUrl`, {
         fileName: file.name,
         fileType: file.type,
       });
 
-      // Upload to S3 using fetch with all headers
-      const response = await fetch(uploadUrl, {
-        method: 'PUT',
-        body: file,
-        headers: {
-          'Content-Type': file.type,
-          'x-amz-acl': 'private'
-        },
-        mode: 'cors'
-      });
+      // Upload to S3 using XMLHttpRequest
+      await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('PUT', uploadUrl);
+        xhr.setRequestHeader('Content-Type', file.type);
+        xhr.setRequestHeader('x-amz-acl', 'private');
 
-      if (!response.ok) {
-        throw new Error(`Upload failed with status: ${response.status}`);
-      }
+        xhr.onload = () => {
+          if (xhr.status === 200) {
+            resolve();
+          } else {
+            reject(new Error(`Upload failed with status: ${xhr.status}`));
+          }
+        };
+
+        xhr.onerror = () => {
+          reject(new Error('Upload failed'));
+        };
+
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const percentComplete = (event.loaded / event.total) * 100;
+            console.log(`Upload progress: ${percentComplete}%`);
+          }
+        };
+
+        xhr.send(file);
+      });
 
       // Start transcription
       const { data: transcriptionData } = await axios.post(`${API_URL}/api/transcribe`, { key });
