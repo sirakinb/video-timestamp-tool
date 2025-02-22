@@ -134,14 +134,26 @@ export default function Home() {
         fileType: file.type,
       });
 
+      console.log('Got pre-signed URL:', uploadUrl); // Debug log
+
       // Upload to S3
-      await axios.put(uploadUrl, file, {
-        headers: {
-          'Content-Type': file.type
-        },
-        maxContentLength: Infinity,
-        maxBodyLength: Infinity
-      });
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        await fetch(uploadUrl, {
+          method: 'PUT',
+          body: file,
+          headers: {
+            'Content-Type': file.type,
+          },
+        });
+      } catch (uploadError) {
+        console.error('S3 Upload error:', uploadError);
+        throw uploadError;
+      }
+
+      console.log('File uploaded successfully, starting transcription'); // Debug log
 
       // Start transcription
       const { data: transcriptionData } = await axios.post(`${API_URL}/api/transcribe`, { key });
@@ -168,8 +180,8 @@ export default function Home() {
         }
       }, 5000);
     } catch (err) {
-      console.error('Upload error:', err);
-      setError(err?.response?.data?.error || 'Upload failed');
+      console.error('Error details:', err);
+      setError(err?.response?.data?.error || err.message || 'Upload failed');
       setUploading(false);
     }
   };
