@@ -134,40 +134,12 @@ export default function Home() {
         fileType: file.type,
       });
 
-      console.log('Got pre-signed URL:', uploadUrl); // Debug log
-
-      // Upload to S3 using XMLHttpRequest
-      await new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open('PUT', uploadUrl);
-        xhr.setRequestHeader('Content-Type', file.type);
-        
-        xhr.onload = () => {
-          if (xhr.status === 200) {
-            console.log('File uploaded successfully');
-            resolve();
-          } else {
-            console.error('Upload failed:', xhr.status, xhr.statusText);
-            reject(new Error(`Upload failed: ${xhr.statusText}`));
-          }
-        };
-        
-        xhr.onerror = () => {
-          console.error('XHR error:', xhr.statusText);
-          reject(new Error('Upload failed'));
-        };
-        
-        xhr.upload.onprogress = (event) => {
-          if (event.lengthComputable) {
-            const percentComplete = (event.loaded / event.total) * 100;
-            console.log(`Upload progress: ${percentComplete.toFixed(2)}%`);
-          }
-        };
-        
-        xhr.send(file);
+      // Upload to S3
+      await axios.put(uploadUrl, file, {
+        headers: {
+          'Content-Type': file.type
+        }
       });
-
-      console.log('Starting transcription for key:', key); // Debug log
 
       // Start transcription
       const { data: transcriptionData } = await axios.post(`${API_URL}/api/transcribe`, { key });
@@ -194,8 +166,8 @@ export default function Home() {
         }
       }, 5000);
     } catch (err) {
-      console.error('Error details:', err);
-      setError(err?.response?.data?.error || err.message || 'Upload failed');
+      console.error('Upload error:', err);
+      setError(err?.response?.data?.error || 'Upload failed');
       setUploading(false);
     }
   };
