@@ -171,14 +171,24 @@ export default function Home() {
             };
 
             xhr.onload = () => {
-              if (xhr.status === 200) {
+              if (xhr.status === 200 || xhr.status === 204) { // S3 might return 204
                 resolve({ status: xhr.status });
               } else {
+                console.error('Upload failed with response:', {
+                  status: xhr.status,
+                  statusText: xhr.statusText,
+                  response: xhr.response
+                });
                 reject(new Error(`Upload failed with status: ${xhr.status}`));
               }
             };
 
             xhr.onerror = () => {
+              console.error('Upload failed with error:', {
+                status: xhr.status,
+                statusText: xhr.statusText,
+                response: xhr.response
+              });
               reject(new Error('Upload failed'));
             };
 
