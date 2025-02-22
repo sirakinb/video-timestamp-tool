@@ -128,26 +128,59 @@ export default function Home() {
       setUploading(true);
       setError(null);
 
+      console.log('Starting upload process...');
+      console.log('File details:', {
+        name: file.name,
+        type: file.type,
+        size: file.size
+      });
+
       // Get pre-signed URL
+      console.log('Getting pre-signed URL from:', `${API_URL}/api/getUploadUrl`);
       const { data: { uploadUrl, key } } = await axios.post(`${API_URL}/api/getUploadUrl`, {
         fileName: file.name,
         fileType: file.type,
       });
 
-      // Upload to S3
-      await axios.put(uploadUrl, file, {
-        headers: {
-          'Content-Type': file.type
-        }
-      });
+      console.log('Received pre-signed URL:', uploadUrl);
+      console.log('File key:', key);
+
+      // Upload to S3 with detailed error handling
+      try {
+        console.log('Starting S3 upload...');
+        const uploadResponse = await axios.put(uploadUrl, file, {
+          headers: {
+            'Content-Type': file.type
+          },
+          maxContentLength: Infinity,
+          maxBodyLength: Infinity,
+          onUploadProgress: (progressEvent) => {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            console.log(`Upload progress: ${percentCompleted}%`);
+          }
+        });
+        
+        console.log('Upload successful:', uploadResponse.status);
+      } catch (uploadError) {
+        console.error('Detailed upload error:', {
+          message: uploadError.message,
+          response: uploadError.response?.data,
+          status: uploadError.response?.status,
+          headers: uploadError.response?.headers
+        });
+        throw uploadError;
+      }
 
       // Start transcription
+      console.log('Starting transcription process...');
       const { data: transcriptionData } = await axios.post(`${API_URL}/api/transcribe`, { key });
       setTranscriptionId(transcriptionData.id);
+      console.log('Transcription started:', transcriptionData);
 
       // Poll for transcription status
       const pollInterval = setInterval(async () => {
         const { data: status } = await axios.get(`${API_URL}/api/transcription/${transcriptionData.id}`);
+        console.log('Transcription status:', status);
         
         if (status.status === 'completed') {
           setTranscription({
@@ -166,8 +199,13 @@ export default function Home() {
         }
       }, 5000);
     } catch (err) {
-      console.error('Upload error:', err);
-      setError(err?.response?.data?.error || 'Upload failed');
+      console.error('Upload error:', {
+        message: err.message,
+        code: err.code,
+        response: err.response?.data,
+        status: err.response?.status
+      });
+      setError(err?.response?.data?.error || err.message || 'Upload failed');
       setUploading(false);
     }
   };

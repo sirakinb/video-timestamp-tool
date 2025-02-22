@@ -46,12 +46,15 @@ interface UploadUrlRequest {
 app.post('/api/getUploadUrl', async (req: Request<{}, {}, UploadUrlRequest>, res: Response) => {
   try {
     const { fileName, fileType } = req.body;
+    console.log('Received upload URL request:', { fileName, fileType });
     
     if (!fileName || !fileType) {
+      console.error('Missing required fields:', { fileName, fileType });
       return res.status(400).json({ error: 'fileName and fileType are required' });
     }
 
     const key = `uploads/${Date.now()}-${fileName}`;
+    console.log('Generated S3 key:', key);
 
     const putCommand = new PutObjectCommand({
       Bucket: process.env.AWS_BUCKET_NAME,
@@ -60,16 +63,28 @@ app.post('/api/getUploadUrl', async (req: Request<{}, {}, UploadUrlRequest>, res
       ACL: 'private'
     });
 
+    console.log('Generating pre-signed URL with params:', {
+      bucket: process.env.AWS_BUCKET_NAME,
+      key,
+      contentType: fileType
+    });
+
     const uploadUrl = await getSignedUrl(s3Client, putCommand, { 
       expiresIn: 3600
     });
 
+    console.log('Generated pre-signed URL successfully');
+    
     res.json({
       uploadUrl,
       key,
     });
   } catch (err: any) {
-    console.error('Error generating upload URL:', err);
+    console.error('Error generating upload URL:', {
+      error: err,
+      message: err?.message,
+      stack: err?.stack
+    });
     res.status(500).json({ 
       error: 'Failed to generate upload URL', 
       details: err?.message || 'Unknown error' 
