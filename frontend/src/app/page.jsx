@@ -134,33 +134,11 @@ export default function Home() {
         fileType: file.type,
       });
 
-      // Upload to S3 using XMLHttpRequest
-      await new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open('PUT', uploadUrl);
-        xhr.setRequestHeader('Content-Type', file.type);
-        xhr.setRequestHeader('x-amz-acl', 'private');
-
-        xhr.onload = () => {
-          if (xhr.status === 200) {
-            resolve();
-          } else {
-            reject(new Error(`Upload failed with status: ${xhr.status}`));
-          }
-        };
-
-        xhr.onerror = () => {
-          reject(new Error('Upload failed'));
-        };
-
-        xhr.upload.onprogress = (event) => {
-          if (event.lengthComputable) {
-            const percentComplete = (event.loaded / event.total) * 100;
-            console.log(`Upload progress: ${percentComplete}%`);
-          }
-        };
-
-        xhr.send(file);
+      // Upload to S3
+      await axios.put(uploadUrl, file, {
+        headers: {
+          'Content-Type': file.type
+        }
       });
 
       // Start transcription
@@ -189,7 +167,7 @@ export default function Home() {
       }, 5000);
     } catch (err) {
       console.error('Upload error:', err);
-      setError(err?.message || 'Upload failed');
+      setError(err?.response?.data?.error || 'Upload failed');
       setUploading(false);
     }
   };

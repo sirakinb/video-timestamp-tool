@@ -7,24 +7,16 @@
       "PUT",
       "POST",
       "DELETE",
-      "GET",
-      "HEAD",
-      "OPTIONS"
+      "GET"
     ],
     "AllowedOrigins": [
       "http://localhost:3000",
       "https://fun-times-video-transcription.vercel.app",
       "https://fun-times-video-transcription-git-main-sirakinbs-projects.vercel.app",
-      "https://funtimesvideo0217.vercel.app",
-      "https://funtimesvideo-backend.onrender.com"
+      "https://funtimesvideo0217.vercel.app"
     ],
     "ExposeHeaders": [
-      "ETag",
-      "x-amz-server-side-encryption",
-      "x-amz-request-id",
-      "x-amz-id-2",
-      "Access-Control-Allow-Origin"
-    ],
-    "MaxAgeSeconds": 3600
+      "ETag"
+    ]
   }
 ] 
