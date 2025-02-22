@@ -137,8 +137,10 @@ export default function Home() {
       // Upload to S3
       await axios.put(uploadUrl, file, {
         headers: {
-          'Content-Type': file.type,
+          'Content-Type': file.type
         },
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity
       });
 
       // Start transcription
@@ -166,7 +168,8 @@ export default function Home() {
         }
       }, 5000);
     } catch (err) {
-      setError('Upload failed');
+      console.error('Upload error:', err);
+      setError(err?.response?.data?.error || 'Upload failed');
       setUploading(false);
     }
   };
