@@ -60,7 +60,9 @@ app.post('/api/getUploadUrl', async (req: Request<{}, {}, UploadUrlRequest>, res
       Bucket: process.env.AWS_BUCKET_NAME,
       Key: key,
       ContentType: fileType,
-      ACL: 'private'
+      ACL: 'private',
+      ChecksumAlgorithm: 'CRC32',
+      RequestPayer: 'requester'
     });
 
     console.log('Generating pre-signed URL with params:', {
@@ -70,7 +72,9 @@ app.post('/api/getUploadUrl', async (req: Request<{}, {}, UploadUrlRequest>, res
     });
 
     const uploadUrl = await getSignedUrl(s3Client, putCommand, { 
-      expiresIn: 3600
+      expiresIn: 3600,
+      signableHeaders: new Set(['host', 'content-type']),
+      unsignableHeaders: new Set(['expect', 'accept'])
     });
 
     console.log('Generated pre-signed URL successfully');

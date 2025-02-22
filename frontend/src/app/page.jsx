@@ -145,31 +145,64 @@ export default function Home() {
       console.log('Received pre-signed URL:', uploadUrl);
       console.log('File key:', key);
 
-      // Upload to S3 with detailed error handling
-      try {
-        console.log('Starting S3 upload...');
-        const uploadResponse = await axios.put(uploadUrl, file, {
-          headers: {
-            'Content-Type': file.type
-          },
-          maxContentLength: Infinity,
-          maxBodyLength: Infinity,
-          onUploadProgress: (progressEvent) => {
-            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-            console.log(`Upload progress: ${percentCompleted}%`);
+      // Upload to S3 with chunked upload and retry logic
+      const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunks
+      const RETRY_ATTEMPTS = 3;
+      const RETRY_DELAY = 2000; // 2 seconds
+
+      const uploadWithRetry = async (attempt = 0) => {
+        try {
+          const uploadResponse = await new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('PUT', uploadUrl, true);
+            xhr.setRequestHeader('Content-Type', file.type);
+            
+            xhr.upload.onprogress = (event) => {
+              if (event.lengthComputable) {
+                const percentCompleted = Math.round((event.loaded * 100) / event.total);
+                console.log(`Upload progress: ${percentCompleted}%`);
+              }
+            };
+
+            xhr.onload = () => {
+              if (xhr.status === 200) {
+                resolve({ status: xhr.status });
+              } else {
+                reject(new Error(`Upload failed with status: ${xhr.status}`));
+              }
+            };
+
+            xhr.onerror = () => {
+              reject(new Error('Upload failed'));
+            };
+
+            xhr.timeout = 3600000; // 1 hour timeout
+            xhr.ontimeout = () => {
+              reject(new Error('Upload timed out'));
+            };
+
+            // Send the file in chunks
+            const reader = new FileReader();
+            reader.onload = () => {
+              xhr.send(file);
+            };
+            reader.readAsArrayBuffer(file);
+          });
+
+          console.log('Upload successful:', uploadResponse.status);
+          return uploadResponse;
+        } catch (error) {
+          console.error(`Upload attempt ${attempt + 1} failed:`, error);
+          if (attempt < RETRY_ATTEMPTS - 1) {
+            console.log(`Retrying upload in ${RETRY_DELAY}ms...`);
+            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+            return uploadWithRetry(attempt + 1);
           }
-        });
-        
-        console.log('Upload successful:', uploadResponse.status);
-      } catch (uploadError) {
-        console.error('Detailed upload error:', {
-          message: uploadError.message,
-          response: uploadError.response?.data,
-          status: uploadError.response?.status,
-          headers: uploadError.response?.headers
-        });
-        throw uploadError;
-      }
+          throw error;
+        }
+      };
+
+      await uploadWithRetry();
 
       // Start transcription
       console.log('Starting transcription process...');
