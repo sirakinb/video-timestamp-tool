@@ -10,6 +10,8 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 export default function Home() {
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [processingStatus, setProcessingStatus] = useState('');
   const [transcriptionId, setTranscriptionId] = useState(null);
   const [transcription, setTranscription] = useState(null);
   const [error, setError] = useState(null);
@@ -127,6 +129,8 @@ export default function Home() {
     try {
       setUploading(true);
       setError(null);
+      setUploadProgress(0);
+      setProcessingStatus('Preparing upload...');
 
       console.log('Starting upload process...');
       console.log('File details:', {
@@ -136,6 +140,7 @@ export default function Home() {
       });
 
       // Get pre-signed URL
+      setProcessingStatus('Getting upload URL...');
       console.log('Getting pre-signed URL from:', `${API_URL}/api/getUploadUrl`);
       const { data: { uploadUrl, key } } = await axios.post(`${API_URL}/api/getUploadUrl`, {
         fileName: file.name,
@@ -146,12 +151,12 @@ export default function Home() {
       console.log('File key:', key);
 
       // Upload to S3 with chunked upload and retry logic
-      const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunks
       const RETRY_ATTEMPTS = 3;
       const RETRY_DELAY = 2000; // 2 seconds
 
       const uploadWithRetry = async (attempt = 0) => {
         try {
+          setProcessingStatus('Uploading file...');
           const uploadResponse = await new Promise((resolve, reject) => {
             const xhr = new XMLHttpRequest();
             xhr.open('PUT', uploadUrl, true);
@@ -160,6 +165,7 @@ export default function Home() {
             xhr.upload.onprogress = (event) => {
               if (event.lengthComputable) {
                 const percentCompleted = Math.round((event.loaded * 100) / event.total);
+                setUploadProgress(percentCompleted);
                 console.log(`Upload progress: ${percentCompleted}%`);
               }
             };
@@ -181,12 +187,7 @@ export default function Home() {
               reject(new Error('Upload timed out'));
             };
 
-            // Send the file in chunks
-            const reader = new FileReader();
-            reader.onload = () => {
-              xhr.send(file);
-            };
-            reader.readAsArrayBuffer(file);
+            xhr.send(file);
           });
 
           console.log('Upload successful:', uploadResponse.status);
@@ -194,6 +195,7 @@ export default function Home() {
         } catch (error) {
           console.error(`Upload attempt ${attempt + 1} failed:`, error);
           if (attempt < RETRY_ATTEMPTS - 1) {
+            setProcessingStatus(`Upload failed, retrying in ${RETRY_DELAY/1000} seconds...`);
             console.log(`Retrying upload in ${RETRY_DELAY}ms...`);
             await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
             return uploadWithRetry(attempt + 1);
@@ -203,17 +205,25 @@ export default function Home() {
       };
 
       await uploadWithRetry();
+      setProcessingStatus('Upload complete, starting transcription...');
 
       // Start transcription
       console.log('Starting transcription process...');
       const { data: transcriptionData } = await axios.post(`${API_URL}/api/transcribe`, { key });
       setTranscriptionId(transcriptionData.id);
       console.log('Transcription started:', transcriptionData);
+      setProcessingStatus('Transcription started, processing audio...');
 
       // Poll for transcription status
+      let lastStatus = '';
       const pollInterval = setInterval(async () => {
         const { data: status } = await axios.get(`${API_URL}/api/transcription/${transcriptionData.id}`);
         console.log('Transcription status:', status);
+        
+        if (status.status !== lastStatus) {
+          lastStatus = status.status;
+          setProcessingStatus(`Transcription status: ${status.status}`);
+        }
         
         if (status.status === 'completed') {
           setTranscription({
@@ -225,10 +235,14 @@ export default function Home() {
           });
           clearInterval(pollInterval);
           setUploading(false);
+          setProcessingStatus('');
+          setUploadProgress(0);
         } else if (status.status === 'error') {
           setError('Transcription failed');
           clearInterval(pollInterval);
           setUploading(false);
+          setProcessingStatus('');
+          setUploadProgress(0);
         }
       }, 5000);
     } catch (err) {
@@ -240,6 +254,8 @@ export default function Home() {
       });
       setError(err?.response?.data?.error || err.message || 'Upload failed');
       setUploading(false);
+      setProcessingStatus('');
+      setUploadProgress(0);
     }
   };
 
@@ -285,8 +301,17 @@ export default function Home() {
 
         {uploading && (
           <div className="mt-4 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#818CF8] mx-auto"></div>
-            <p className="mt-2">Processing your video...</p>
+            <div className="w-full bg-slate-700 rounded-full h-2.5 mb-4">
+              <div 
+                className="bg-[#818CF8] h-2.5 rounded-full transition-all duration-300" 
+                style={{ width: `${uploadProgress}%` }}
+              ></div>
+            </div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#818CF8] mx-auto mb-2"></div>
+            <p className="mt-2 text-gray-300">{processingStatus}</p>
+            {uploadProgress > 0 && uploadProgress < 100 && (
+              <p className="text-sm text-gray-400">Upload Progress: {uploadProgress}%</p>
+            )}
           </div>
         )}
 
