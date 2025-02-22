@@ -56,12 +56,13 @@ app.post('/api/getUploadUrl', async (req: Request<{}, {}, UploadUrlRequest>, res
     const putCommand = new PutObjectCommand({
       Bucket: process.env.AWS_BUCKET_NAME,
       Key: key,
-      ContentType: fileType,
-      ACL: 'private'
+      ContentType: fileType
     });
 
     const uploadUrl = await getSignedUrl(s3Client, putCommand, { 
-      expiresIn: 3600
+      expiresIn: 3600,
+      // Use v4 signing
+      signableHeaders: new Set(['host', 'content-type'])
     });
 
     res.json({
