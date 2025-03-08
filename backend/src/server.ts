@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, GetObjectCommand, PutBucketCorsCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
@@ -58,14 +58,23 @@ interface Timestamp {
   formattedTime: string;
   title: string;
   category: string;
-  confidence: number;
 }
 
 const app = express();
 const port = process.env.PORT || 3001;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost:3002',
+    'http://localhost:3003',
+    'http://localhost:3004',
+    'http://localhost:3005'
+  ],
+  credentials: true
+}));
 app.use(express.json());
 
 // Initialize AssemblyAI client
@@ -86,20 +95,53 @@ const s3Client = new S3Client({
   },
 });
 
+// Apply CORS configuration to S3 bucket
+const bucketName = process.env.AWS_BUCKET_NAME || 'video-timestamps-bucket';
+const applyCorsToS3Bucket = async () => {
+  try {
+    const corsConfig = {
+      CORSRules: [
+        {
+          AllowedHeaders: ["*"],
+          AllowedMethods: ["PUT", "POST", "GET", "DELETE"],
+          AllowedOrigins: [
+            "http://localhost:3000",
+            "http://localhost:3001",
+            "http://localhost:3002",
+            "http://localhost:3003",
+            "http://localhost:3004",
+            "http://localhost:3005"
+          ],
+          ExposeHeaders: ["ETag"]
+        }
+      ]
+    };
+
+    const corsCommand = new PutBucketCorsCommand({
+      Bucket: bucketName,
+      CORSConfiguration: corsConfig
+    });
+
+    await s3Client.send(corsCommand);
+    console.log('S3 CORS configuration applied successfully');
+  } catch (error) {
+    console.error('Error applying CORS configuration to S3 bucket:', error);
+  }
+};
+
+// Apply CORS configuration when server starts
+applyCorsToS3Bucket();
+
 // Get pre-signed URL for video upload
 app.post('/api/getUploadUrl', async (req, res) => {
   try {
-    const { fileName, fileType } = req.body;
+    const { filename } = req.body;
+    const key = `videos/${uuidv4()}-${filename}`;
     
-    if (!fileName || !fileType) {
-      return res.status(400).json({ error: 'fileName and fileType are required' });
-    }
-
-    const key = `videos/${uuidv4()}-${fileName}`;
     const command = new PutObjectCommand({
-      Bucket: process.env.AWS_BUCKET_NAME,
+      Bucket: bucketName,
       Key: key,
-      ContentType: fileType,
+      ContentType: 'video/mp4',
     });
 
     const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
@@ -122,7 +164,7 @@ app.post('/api/analyze-video', async (req, res) => {
 
     // Get video URL from S3
     const getCommand = new GetObjectCommand({
-      Bucket: process.env.AWS_BUCKET_NAME,
+      Bucket: bucketName,
       Key: videoKey,
     });
 
@@ -184,23 +226,22 @@ app.post('/api/analyze-video', async (req, res) => {
 // Store timestamps for a video
 app.post('/api/timestamps', async (req, res) => {
   try {
-    const { videoKey, timestamps } = req.body;
+    const { videoId, timestamps } = req.body;
     
-    if (!videoKey || !timestamps) {
-      return res.status(400).json({ error: 'videoKey and timestamps are required' });
+    if (!videoId || !timestamps) {
+      return res.status(400).json({ error: 'videoId and timestamps are required' });
     }
 
     // Store timestamps in S3
-    const key = `timestamps/${videoKey}.json`;
     const command = new PutObjectCommand({
-      Bucket: process.env.AWS_BUCKET_NAME,
-      Key: key,
+      Bucket: bucketName,
+      Key: `timestamps/${videoId}.json`,
       Body: JSON.stringify(timestamps),
       ContentType: 'application/json',
     });
 
     await s3Client.send(command);
-    res.json({ success: true, key });
+    res.json({ success: true, key: `timestamps/${videoId}.json` });
   } catch (error) {
     console.error('Error storing timestamps:', error);
     res.status(500).json({ error: 'Failed to store timestamps' });
@@ -290,8 +331,7 @@ function processTranscriptResponse(transcript: TranscriptResponse): Timestamp[] 
         time: timeInSeconds,
         formattedTime: formatTime(timeInSeconds),
         title: formattedTitle,
-        category: "Chapter",
-        confidence: 0.95
+        category: "Chapter"
       });
     }
   }
@@ -374,8 +414,7 @@ function processTranscriptResponse(transcript: TranscriptResponse): Timestamp[] 
         time: timeInSeconds,
         formattedTime: formatTime(timeInSeconds),
         title: formattedTitle,
-        category: "Highlight",
-        confidence: highlight.confidence
+        category: "Highlight"
       });
     }
   }
@@ -502,8 +541,7 @@ function processTranscriptResponse(transcript: TranscriptResponse): Timestamp[] 
           time: timePoint,
           formattedTime: formatTime(timePoint),
           title: formattedTitle,
-          category: "Section",
-          confidence: 0.85
+          category: "Section"
         });
       }
     } else {
@@ -527,8 +565,7 @@ function processTranscriptResponse(transcript: TranscriptResponse): Timestamp[] 
           time: timePoint,
           formattedTime: formatTime(timePoint),
           title: title,
-          category: "Section",
-          confidence: 0.8
+          category: "Section"
         });
       }
     }

@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useRef } from 'react';
 import axios from 'axios';
-import { CloudArrowUpIcon } from '@heroicons/react/24/outline';
+import { CloudArrowUpIcon, PencilIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 // Add API base URL
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -17,6 +17,11 @@ export default function Home() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [suggestedTimestamps, setSuggestedTimestamps] = useState([]);
   const videoRef = useRef(null);
+  
+  // New state variables for timestamp editing
+  const [editingTimestampId, setEditingTimestampId] = useState(null);
+  const [editingTime, setEditingTime] = useState('');
+  const [editingTitle, setEditingTitle] = useState('');
 
   const handleDrop = useCallback((e) => {
     e.preventDefault();
@@ -42,6 +47,19 @@ export default function Home() {
     const m = Math.floor((seconds % 3600) / 60);
     const s = Math.floor(seconds % 60);
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+
+  // Add function to parse time strings back to seconds
+  const parseTimeToSeconds = (timeString) => {
+    const parts = timeString.split(':').map(Number);
+    if (parts.length === 3) {
+      // HH:MM:SS format
+      return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    } else if (parts.length === 2) {
+      // MM:SS format
+      return parts[0] * 60 + parts[1];
+    }
+    return 0;
   };
 
   const removeTimestamp = (id) => {
@@ -113,8 +131,7 @@ export default function Home() {
         time: timestamp.time || 0,
         formattedTime: timestamp.formattedTime || formatTime(timestamp.time || 0),
         title: timestamp.title || 'Untitled',
-        category: timestamp.category || 'Key Point',
-        confidence: timestamp.confidence || 0
+        category: timestamp.category || 'Key Point'
       }));
 
       setSuggestedTimestamps(processedTimestamps);
@@ -125,6 +142,40 @@ export default function Home() {
     } finally {
       setIsAnalyzing(false);
     }
+  };
+
+  // Start editing a timestamp
+  const startEditing = (timestamp) => {
+    setEditingTimestampId(timestamp.id);
+    setEditingTime(timestamp.formattedTime);
+    setEditingTitle(timestamp.title);
+  };
+
+  // Cancel editing
+  const cancelEditing = () => {
+    setEditingTimestampId(null);
+    setEditingTime('');
+    setEditingTitle('');
+  };
+
+  // Save edited timestamp
+  const saveEditedTimestamp = (originalTimestamp) => {
+    if (!editingTitle.trim()) {
+      setError('Please enter a timestamp title');
+      return;
+    }
+
+    const timeInSeconds = parseTimeToSeconds(editingTime);
+
+    const editedTimestamp = {
+      ...originalTimestamp,
+      time: timeInSeconds,
+      formattedTime: editingTime,
+      title: editingTitle,
+    };
+
+    acceptSuggestedTimestamp(editedTimestamp);
+    cancelEditing();
   };
 
   const acceptSuggestedTimestamp = (timestamp) => {
@@ -203,24 +254,69 @@ export default function Home() {
                 <div className="space-y-2">
                   {suggestedTimestamps.map(timestamp => (
                     <div
-                      key={`${timestamp.time}-${timestamp.title}`}
+                      key={`${timestamp.id}-${timestamp.title}`}
                       className="flex items-center justify-between bg-gray-700 p-3 rounded-lg"
                     >
-                      <div className="flex items-center space-x-4">
-                        <span className="text-blue-400 font-mono">
-                          {timestamp.formattedTime}
-                        </span>
-                        <span>{timestamp.title}</span>
-                        <span className="text-sm text-gray-400">
-                          (Confidence: {Math.round(timestamp.confidence * 100)}%)
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => acceptSuggestedTimestamp(timestamp)}
-                        className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg"
-                      >
-                        Accept
-                      </button>
+                      {editingTimestampId === timestamp.id ? (
+                        // Edit mode
+                        <div className="flex-1 flex flex-wrap items-center gap-3">
+                          <input
+                            type="text"
+                            value={editingTime}
+                            onChange={(e) => setEditingTime(e.target.value)}
+                            className="w-32 bg-gray-600 text-white p-2 rounded"
+                            placeholder="HH:MM:SS"
+                          />
+                          <input
+                            type="text"
+                            value={editingTitle}
+                            onChange={(e) => setEditingTitle(e.target.value)}
+                            className="flex-1 min-w-[200px] bg-gray-600 text-white p-2 rounded"
+                            placeholder="Title"
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => saveEditedTimestamp(timestamp)}
+                              className="bg-green-600 hover:bg-green-700 p-2 rounded"
+                              title="Save"
+                            >
+                              <CheckIcon className="h-5 w-5" />
+                            </button>
+                            <button
+                              onClick={cancelEditing}
+                              className="bg-red-600 hover:bg-red-700 p-2 rounded"
+                              title="Cancel"
+                            >
+                              <XMarkIcon className="h-5 w-5" />
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        // Display mode
+                        <>
+                          <div className="flex items-center space-x-4">
+                            <span className="text-blue-400 font-mono">
+                              {timestamp.formattedTime}
+                            </span>
+                            <span>{timestamp.title}</span>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => startEditing(timestamp)}
+                              className="bg-blue-600 hover:bg-blue-700 p-2 rounded"
+                              title="Edit"
+                            >
+                              <PencilIcon className="h-5 w-5" />
+                            </button>
+                            <button
+                              onClick={() => acceptSuggestedTimestamp(timestamp)}
+                              className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg"
+                            >
+                              Accept
+                            </button>
+                          </div>
+                        </>
+                      )}
                     </div>
                   ))}
                 </div>
