@@ -72,7 +72,9 @@ app.use(cors({
     'http://localhost:3003',
     'http://localhost:3004',
     'http://localhost:3005',
-    process.env.FRONTEND_URL || 'http://localhost:3000'
+    process.env.FRONTEND_URL || 'http://localhost:3000',
+    'https://frontend-six-woad-76.vercel.app',
+    'https://frontend-44fz4ou19-sirakinbs-projects.vercel.app'
   ],
   credentials: true
 }));
@@ -113,7 +115,9 @@ const applyCorsToS3Bucket = async () => {
             "http://localhost:3003",
             "http://localhost:3004",
             "http://localhost:3005",
-            frontendUrl
+            frontendUrl,
+            "https://frontend-six-woad-76.vercel.app",
+            "https://frontend-44fz4ou19-sirakinbs-projects.vercel.app"
           ],
           ExposeHeaders: ["ETag"]
         }
