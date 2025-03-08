@@ -71,7 +71,8 @@ app.use(cors({
     'http://localhost:3002',
     'http://localhost:3003',
     'http://localhost:3004',
-    'http://localhost:3005'
+    'http://localhost:3005',
+    process.env.FRONTEND_URL || 'http://localhost:3000'
   ],
   credentials: true
 }));
@@ -97,6 +98,7 @@ const s3Client = new S3Client({
 
 // Apply CORS configuration to S3 bucket
 const bucketName = process.env.AWS_BUCKET_NAME || 'video-timestamps-bucket';
+const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
 const applyCorsToS3Bucket = async () => {
   try {
     const corsConfig = {
@@ -110,7 +112,8 @@ const applyCorsToS3Bucket = async () => {
             "http://localhost:3002",
             "http://localhost:3003",
             "http://localhost:3004",
-            "http://localhost:3005"
+            "http://localhost:3005",
+            frontendUrl
           ],
           ExposeHeaders: ["ETag"]
         }
