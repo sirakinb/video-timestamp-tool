@@ -1,33 +1,41 @@
 {
-  "name": "backend",
+  "name": "video-timestamp-backend",
   "version": "1.0.0",
-  "main": "index.js",
+  "description": "Backend for video timestamp generation tool",
+  "main": "dist/server.js",
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "start": "node dist/server.js",
+    "dev": "ts-node-dev src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.0.0",
-    "@aws-sdk/s3-request-presigner": "^3.0.0",
+    "@aws-sdk/client-s3": "^3.525.0",
+    "@aws-sdk/s3-request-presigner": "^3.525.0",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
-    "@types/node": "^20.11.19",
-    "axios": "^1.6.7",
+    "@types/node": "^20.11.24",
+    "@types/uuid": "^9.0.8",
+    "aws-sdk": "^2.1692.0",
+    "axios": "^1.8.2",
     "cors": "^2.8.5",
-    "dotenv": "^16.4.4",
-    "express": "^4.18.2",
+    "dotenv": "^16.4.7",
+    "express": "^4.18.3",
+    "fluent-ffmpeg": "^2.1.2",
+    "openai": "^4.28.0",
     "ts-node-dev": "^2.0.0",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
-    "@types/node": "^20.11.19",
+    "@types/fluent-ffmpeg": "^2.1.24",
+    "@types/node": "^20.11.24",
+    "@types/uuid": "^9.0.8",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.3.3"
   }

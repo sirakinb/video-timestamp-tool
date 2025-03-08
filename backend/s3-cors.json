@@ -1,26 +1,24 @@
-[
-  {
-    "AllowedHeaders": [
-      "content-type",
-      "content-length",
-      "host",
-      "x-amz-*"
-    ],
-    "AllowedMethods": [
-      "PUT",
-      "POST",
-      "DELETE",
-      "GET"
-    ],
-    "AllowedOrigins": [
-      "http://localhost:3000",
-      "https://fun-times-video-transcription.vercel.app",
-      "https://fun-times-video-transcription-git-main-sirakinbs-projects.vercel.app",
-      "https://funtimesvideo0217.vercel.app"
-    ],
-    "ExposeHeaders": [
-      "ETag",
-      "x-amz-*"
+{
+    "CORSRules": [
+        {
+            "AllowedHeaders": [
+                "*"
+            ],
+            "AllowedMethods": [
+                "PUT",
+                "POST",
+                "GET",
+                "DELETE"
+            ],
+            "AllowedOrigins": [
+                "http://localhost:3000",
+                "http://localhost:3001",
+                "http://localhost:3002",
+                "http://localhost:3003"
+            ],
+            "ExposeHeaders": [
+                "ETag"
+            ]
+        }
     ]
-  }
-] 
+} 
